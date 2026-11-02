@@ -1,5 +1,5 @@
 --[==[ 
-    Panel GUI de Vuelo Estilo Pro + Idle Animado para JJS
+    Panel GUI de Vuelo Optimizado para Celular - JJS
 ]==]--
 
 local Players = game:GetService("Players")
@@ -8,28 +8,26 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
 local flying = false
-local speed = 50
-local toggleKey = Enum.KeyCode.X
+local speed = 45
 local bodyVelocity, bodyGyro
 local currentAnimTrack
-local idleAnimTrack
 
--- IDs de animaciones de vuelo en movimiento y posturas flotantes "pro" (Idle)
+-- IDs de animaciones adaptadas para móvil
 local anims = {
     {name = "Estilo Pro / Aura", moveId = "rbxassetid://507768375", idleId = "rbxassetid://507768434"},
     {name = "Postura Amenazante", moveId = "rbxassetid://507768388", idleId = "rbxassetid://507768375"}
 }
 local currentSelection = anims[1]
 
--- Interfaz Gráfica (GUI) del Panel
+-- Interfaz Gráfica (GUI) Compacta para Celular
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ProFlightGui"
+screenGui.Name = "MobileFlightGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 260, 0, 310)
-mainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+mainFrame.Size = UDim2.new(0, 220, 0, 240) -- Tamaño más pequeño y cómodo
+mainFrame.Position = UDim2.new(0.02, 0, 0.25, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
@@ -37,20 +35,20 @@ mainFrame.Draggable = true
 mainFrame.Parent = screenGui
 
 local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.CornerRadius = UDim.new(0, 10)
 uiCorner.Parent = mainFrame
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, 0, 0, 40)
-titleLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+titleLabel.Size = UDim2.new(1, 0, 0, 30)
+titleLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.TextSize = 15
+titleLabel.TextSize = 13
 titleLabel.Font = Enum.Font.SourceSansBold
-titleLabel.Text = "Panel Pro Vuelo - JJS"
+titleLabel.Text = "Vuelo Pro - Mobile"
 titleLabel.Parent = mainFrame
 
 local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 8)
+titleCorner.CornerRadius = UDim.new(0, 10)
 titleCorner.Parent = titleLabel
 
 local function playAnimation(id)
@@ -75,45 +73,41 @@ local function startFlight()
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     
     flying = true
-    humanoid.PlatformStand = true
-
+    
+    -- Evita el bug de congelamiento en móvil aplicando fuerzas estables
     playAnimation(currentSelection.moveId)
 
     bodyVelocity = Instance.new("BodyVelocity")
     bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVelocity.MaxForce = Vector3.new(400000, 400000, 400000)
     bodyVelocity.Parent = rootPart
 
     bodyGyro = Instance.new("BodyGyro")
-    bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
     bodyGyro.CFrame = rootPart.CFrame
     bodyGyro.Parent = rootPart
 
     task.spawn(function()
-        local isMovingPrev = false
         while flying and character and character:Parent() do
             local camera = workspace.CurrentCamera
             local moveDir = Vector3.new(0, 0, 0)
-            local moving = false
             
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector; moving = true end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector; moving = true end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector; moving = true end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector; moving = true end
+            -- Movimiento adaptado para controles táctiles / cámara
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then 
+                moveDir = moveDir + camera.CFrame.LookVector 
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down) then 
+                moveDir = moveDir - camera.CFrame.LookVector 
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then 
+                moveDir = moveDir - camera.CFrame.RightVector 
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then 
+                moveDir = moveDir + camera.CFrame.RightVector 
+            end
 
             bodyVelocity.Velocity = moveDir * speed
             bodyGyro.CFrame = camera.CFrame
-
-            -- Cambia entre animación de movimiento o postura flotante "pro" si estás detenido
-            if moving ~= isMovingPrev then
-                isMovingPrev = moving
-                if moving then
-                    playAnimation(currentSelection.moveId)
-                else
-                    playAnimation(currentSelection.idleId) -- Posición estática pro flotando
-                end
-            end
-
             RunService.RenderStepped:Wait()
         end
     end)
@@ -121,64 +115,61 @@ end
 
 local function stopFlight()
     flying = false
-    local character = player.Character
-    if character then
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.PlatformStand = false end
-    end
     if bodyVelocity then bodyVelocity:Destroy() end
     if bodyGyro then bodyGyro:Destroy() end
     if currentAnimTrack then currentAnimTrack:Stop() end
 end
 
--- Botón principal en la GUI
+-- Botón táctil para Activar/Desactivar Vuelo
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
-toggleBtn.Position = UDim2.new(0.05, 0, 0, 55)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+toggleBtn.Size = UDim2.new(0.9, 0, 0, 30)
+toggleBtn.Position = UDim2.new(0.05, 0, 0, 40)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.TextSize = 14
+toggleBtn.TextSize = 13
 toggleBtn.Font = Enum.Font.SourceSansBold
-toggleBtn.Text = "Activar Vuelo (Tecla X)"
+toggleBtn.Text = "Activar / Apagar Vuelo"
 toggleBtn.Parent = mainFrame
 
 toggleBtn.MouseButton1Click:Connect(function()
     if flying then
         stopFlight()
-        toggleBtn.Text = "Activar Vuelo"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     else
         startFlight()
-        toggleBtn.Text = "Desactivar Vuelo"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
     end
 end)
 
--- Selector de Estilos Pro
-local yOffset = 100
-for _, data in ipairs(anims) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 30)
-    btn.Position = UDim2.new(0.05, 0, 0, yOffset)
-    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 12
-    btn.Font = Enum.Font.SourceSans
-    btn.Text = data.name
-    btn.Parent = mainFrame
-    
-    btn.MouseButton1Click:Connect(function()
-        currentSelection = data
-        if flying then
-            stopFlight()
-            startFlight()
-        end
-    end)
-    yOffset = yOffset + 35
-end
+-- Selector de animación táctil
+local animBtn = Instance.new("TextButton")
+animBtn.Size = UDim2.new(0.9, 0, 0, 28)
+animBtn.Position = UDim2.new(0.05, 0, 0, 80)
+animBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+animBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+animBtn.TextSize = 12
+animBtn.Font = Enum.Font.SourceSans
+animBtn.Text = "Cambiar Estilo Pro"
+animBtn.Parent = mainFrame
 
--- Controles de Velocidad en la GUI
+animBtn.MouseButton1Click:Connect(function()
+    if currentSelection == anims[1] then
+        currentSelection = anims[2]
+        animBtn.Text = "Estilo: Amenazante"
+    else
+        currentSelection = anims[1]
+        animBtn.Text = "Estilo: Pro / Aura"
+    end
+    if flying then
+        stopFlight()
+        startFlight()
+    end
+end)
+
+-- Controles de Velocidad Táctiles
 local speedLabel = Instance.new("TextLabel")
 speedLabel.Size = UDim2.new(0.9, 0, 0, 20)
-speedLabel.Position = UDim2.new(0.05, 0, 0, 215)
+speedLabel.Position = UDim2.new(0.05, 0, 0, 120)
 speedLabel.BackgroundTransparency = 1
 speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 speedLabel.TextSize = 12
@@ -187,22 +178,22 @@ speedLabel.Text = "Velocidad: " .. speed
 speedLabel.Parent = mainFrame
 
 local minusBtn = Instance.new("TextButton")
-minusBtn.Size = UDim2.new(0.42, 0, 0, 30)
-minusBtn.Position = UDim2.new(0.05, 0, 0, 245)
-minusBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+minusBtn.Size = UDim2.new(0.42, 0, 0, 28)
+minusBtn.Position = UDim2.new(0.05, 0, 0, 145)
+minusBtn.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
 minusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 minusBtn.Text = "Vel -"
 minusBtn.Parent = mainFrame
 
 minusBtn.MouseButton1Click:Connect(function()
-    speed = math.max(10, speed - 10)
+    speed = math.max(15, speed - 10)
     speedLabel.Text = "Velocidad: " .. speed
 end)
 
 local plusBtn = Instance.new("TextButton")
-plusBtn.Size = UDim2.new(0.42, 0, 0, 30)
-plusBtn.Position = UDim2.new(0.53, 0, 0, 245)
-plusBtn.BackgroundColor3 = Color3.fromRGB(40, 130, 40)
+plusBtn.Size = UDim2.new(0.42, 0, 0, 28)
+plusBtn.Position = UDim2.new(0.53, 0, 0, 145)
+plusBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
 plusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 plusBtn.Text = "Vel +"
 plusBtn.Parent = mainFrame
@@ -212,12 +203,37 @@ plusBtn.MouseButton1Click:Connect(function()
     speedLabel.Text = "Velocidad: " .. speed
 end)
 
--- Tecla rápida X
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == toggleKey then
-        if flying then stopFlight() toggleBtn.Text = "Activar Vuelo" else startFlight() toggleBtn.Text = "Desactivar Vuelo" end
+-- Botón para cerrar / ocultar GUI si estorba
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0.9, 0, 0, 25)
+closeBtn.Position = UDim2.new(0.05, 0, 0, 195)
+closeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextSize = 11
+closeBtn.Text = "Minimizar / Ocultar"
+closeBtn.Parent = mainFrame
+
+local minimized = false
+closeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        mainFrame.Size = UDim2.new(0, 220, 0, 35)
+        closeBtn.Text = "Maximizar Panel"
+        -- Oculta los demás elementos visuales al minimizar
+        toggleBtn.Visible = false
+        animBtn.Visible = false
+        speedLabel.Visible = false
+        minusBtn.Visible = false
+        plusBtn.Visible = false
+    else
+        mainFrame.Size = UDim2.new(0, 220, 0, 240)
+        closeBtn.Text = "Minimizar / Ocultar"
+        toggleBtn.Visible = true
+        animBtn.Visible = true
+        speedLabel.Visible = true
+        minusBtn.Visible = true
+        plusBtn.Visible = true
     end
 end)
 
-print("[+] Panel Pro con Loadstring listo.")
+print("[+] Panel optimizado para móvil cargado.")
