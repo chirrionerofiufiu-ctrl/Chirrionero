@@ -1,0 +1,157 @@
+--[==[ 
+    Script Copiar Avatar por ID o Nombre + Interfaz Móvil Minimizable
+]==]--
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- Interfaz Gráfica (GUI) Compacta para Celular
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CopyAvatarGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 240, 0, 180)
+mainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true -- Se puede arrastrar por toda la pantalla con el dedo
+mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 10)
+uiCorner.Parent = mainFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 30)
+titleLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 13
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.Text = "Copiar Ropa de Usuario"
+titleLabel.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = titleLabel
+
+-- Campo de texto para poner el nombre o ID
+local textBox = Instance.new("TextBox")
+textBox.Size = UDim2.new(0.9, 0, 0, 35)
+textBox.Position = UDim2.new(0.05, 0, 0, 40)
+textBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+textBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+textBox.PlaceholderText = "Escribe el User o ID aquí..."
+textBox.TextSize = 12
+textBox.Font = Enum.Font.SourceSans
+textBox.Text = ""
+textBox.Parent = mainFrame
+
+local boxCorner = Instance.new("UICorner")
+boxCorner.CornerRadius = UDim.new(0, 6)
+boxCorner.Parent = textBox
+
+-- Botón para aplicar la ropa
+local copyBtn = Instance.new("TextButton")
+copyBtn.Size = UDim2.new(0.9, 0, 0, 35)
+copyBtn.Position = UDim2.new(0.05, 0, 0, 85)
+copyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+copyBtn.TextSize = 13
+copyBtn.Font = Enum.Font.SourceSansBold
+copyBtn.Text = "Aplicar Avatar"
+copyBtn.Parent = mainFrame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 6)
+btnCorner.Parent = copyBtn
+
+-- Botón de Minimizar / Maximizar
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0.42, 0, 0, 30)
+minimizeBtn.Position = UDim2.new(0.05, 0, 0, 130)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeBtn.TextSize = 11
+minimizeBtn.Font = Enum.Font.SourceSansBold
+minimizeBtn.Text = "Minimizar"
+minimizeBtn.Parent = mainFrame
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 6)
+minCorner.Parent = minimizeBtn
+
+-- Botón para Cerrar / Destruir la GUI por completo
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0.42, 0, 0, 30)
+closeBtn.Position = UDim2.new(0.53, 0, 0, 130)
+closeBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextSize = 11
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.Text = "Cerrar"
+closeBtn.Parent = mainFrame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 6)
+closeCorner.Parent = closeBtn
+
+-- Lógica para copiar la descripción del avatar por ID
+local function applyAvatar(targetUserId)
+    local character = player.Character
+    if not character then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        pcall(function()
+            local content = Players:GetHumanoidDescriptionFromUserId(targetUserId)
+            humanoid:ApplyDescription(content)
+        end)
+    end
+end
+
+-- Evento del botón Copiar
+copyBtn.MouseButton1Click:Connect(function()
+    local input = textBox.Text
+    local targetId = tonumber(input)
+    
+    if targetId then
+        applyAvatar(targetId)
+    else
+        -- Si escribieron un nombre en lugar de un número, busca el UserId automáticamente
+        pcall(function()
+            local id = Players:GetUserIdFromNameAsync(input)
+            if id then
+                applyAvatar(id)
+            end
+        end)
+    end
+end)
+
+-- Lógica de Minimizar
+local minimized = false
+minimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        mainFrame.Size = UDim2.new(0, 240, 0, 35)
+        minimizeBtn.Text = "Restaurar"
+        textBox.Visible = false
+        copyBtn.Visible = false
+        closeBtn.Visible = false
+    else
+        mainFrame.Size = UDim2.new(0, 240, 0, 180)
+        minimizeBtn.Text = "Minimizar"
+        textBox.Visible = true
+        copyBtn.Visible = true
+        closeBtn.Visible = true
+    end
+end)
+
+-- Lógica de Cerrar por completo
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+print("[+] Script de clonar avatar cargado con éxito.")
