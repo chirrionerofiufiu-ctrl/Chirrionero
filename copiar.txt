@@ -1,13 +1,14 @@
 --[==[ 
-    Script Copiar Avatar Definitivo para Delta (iOS) - JJS
+    Script Clonar Ropa por HTTP API para Delta (iOS)
 ]==]--
 
 local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
--- Crear Interfaz Gráfica Ultra Eficiente para iOS
+-- Crear Interfaz Gráfica
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "DeltaCopyGui"
+screenGui.Name = "HttpCopyGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
@@ -30,7 +31,7 @@ titleLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 12
 titleLabel.Font = Enum.Font.SourceSansBold
-titleLabel.Text = "Delta Avatar Cloner"
+titleLabel.Text = "Delta HTTP Cloner"
 titleLabel.Parent = mainFrame
 
 local titleCorner = Instance.new("UICorner")
@@ -60,7 +61,7 @@ copyBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 90)
 copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 copyBtn.TextSize = 12
 copyBtn.Font = Enum.Font.SourceSansBold
-copyBtn.Text = "Aplicar Ropa"
+copyBtn.Text = "Aplicar Ropa (HTTP)"
 copyBtn.Parent = mainFrame
 
 local btnCorner = Instance.new("UICorner")
@@ -95,18 +96,48 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 6)
 closeCorner.Parent = closeBtn
 
--- Función compatible con Delta para aplicar la descripción sin bloqueos
-local function applyAvatarToMe(targetId)
+-- Función para aplicar mediante consulta directa compatible con ejecutores móviles
+local function applyClothing(userId)
     local character = player.Character
     if not character then return end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    -- Usamos pcall protegido compatible con el entorno iOS de Delta
-    pcall(function()
-        local desc = Players:GetHumanoidDescriptionFromUserId(targetId)
-        if desc then
-            humanoid:ApplyDescriptionReset(desc)
+    
+    task.spawn(function()
+        -- Petición segura a la API pública de avatares de Roblox
+        local success, response = pcall(function()
+            return game:HttpGet("https://avatar.roblox.com/v1/users/"..tostring(userId).."/avatar")
+        end)
+        
+        if success and response then
+            local data = HttpService:JSONDecode(response)
+            if data and data.assets then
+                local shirtId, pantsId, tShirtId = nil, nil, nil
+                
+                for _, asset in ipairs(data.assets) do
+                    if asset.assetType then
+                        if asset.assetType.name == "Shirt" then
+                            shirtId = asset.id
+                        elseif asset.assetType.name == "Pants" then
+                            pantsId = asset.id
+                        elseif asset.assetType.name == "TShirt" then
+                            tShirtId = asset.id
+                        end
+                    end
+                end
+                
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    -- Buscar o crear objetos de ropa en el personaje
+                    local shirt = character:FindFirstChildOfClass("Shirt") or Instance.new("Shirt", character)
+                    local pants = character:FindFirstChildOfClass("Pants") or Instance.new("Pants", character)
+                    
+                    if shirtId then
+                        shirt.ShirtTemplate = "rbxassetid://"..tostring(shirtId)
+                    end
+                    if pantsId then
+                        pants.PantsTemplate = "rbxassetid://"..tostring(pantsId)
+                    end
+                end
+            end
         end
     end)
 end
@@ -116,12 +147,12 @@ copyBtn.MouseButton1Click:Connect(function()
     local id = tonumber(text)
     
     if id then
-        applyAvatarToMe(id)
+        applyClothing(id)
     else
         pcall(function()
             local resolvedId = Players:GetUserIdFromNameAsync(text)
             if resolvedId then
-                applyAvatarToMe(resolvedId)
+                applyClothing(resolvedId)
             end
         end)
     end
@@ -149,4 +180,4 @@ closeBtn.MouseButton1Click:Connect(function()
     screenGui:Destroy()
 end)
 
-print("[+] Script optimizado para Delta iOS cargado correctamente.")
+print("[+] Script HTTP directo para Delta iOS cargado.")
