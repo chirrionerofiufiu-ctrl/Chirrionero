@@ -1,5 +1,5 @@
 --[==[ 
-    Script Copiar Avatar por ID o Nombre + Interfaz Móvil Minimizable
+    Script Copiar Ropa Directo por ID de Usuario + Interfaz Móvil
 ]==]--
 
 local Players = game:GetService("Players")
@@ -17,7 +17,7 @@ mainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
-mainFrame.Draggable = true -- Se puede arrastrar por toda la pantalla con el dedo
+mainFrame.Draggable = true
 mainFrame.Parent = screenGui
 
 local uiCorner = Instance.new("UICorner")
@@ -30,14 +30,13 @@ titleLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 13
 titleLabel.Font = Enum.Font.SourceSansBold
-titleLabel.Text = "Copiar Ropa de Usuario"
+titleLabel.Text = "Copiar Ropa por ID / User"
 titleLabel.Parent = mainFrame
 
 local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 10)
 titleCorner.Parent = titleLabel
 
--- Campo de texto para poner el nombre o ID
 local textBox = Instance.new("TextBox")
 textBox.Size = UDim2.new(0.9, 0, 0, 35)
 textBox.Position = UDim2.new(0.05, 0, 0, 40)
@@ -54,7 +53,6 @@ local boxCorner = Instance.new("UICorner")
 boxCorner.CornerRadius = UDim.new(0, 6)
 boxCorner.Parent = textBox
 
--- Botón para aplicar la ropa
 local copyBtn = Instance.new("TextButton")
 copyBtn.Size = UDim2.new(0.9, 0, 0, 35)
 copyBtn.Position = UDim2.new(0.05, 0, 0, 85)
@@ -62,14 +60,13 @@ copyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
 copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 copyBtn.TextSize = 13
 copyBtn.Font = Enum.Font.SourceSansBold
-copyBtn.Text = "Aplicar Avatar"
+copyBtn.Text = "Aplicar Ropa"
 copyBtn.Parent = mainFrame
 
 local btnCorner = Instance.new("UICorner")
 btnCorner.CornerRadius = UDim.new(0, 6)
 btnCorner.Parent = copyBtn
 
--- Botón de Minimizar / Maximizar
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0.42, 0, 0, 30)
 minimizeBtn.Position = UDim2.new(0.05, 0, 0, 130)
@@ -84,7 +81,6 @@ local minCorner = Instance.new("UICorner")
 minCorner.CornerRadius = UDim.new(0, 6)
 minCorner.Parent = minimizeBtn
 
--- Botón para Cerrar / Destruir la GUI por completo
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0.42, 0, 0, 30)
 closeBtn.Position = UDim2.new(0.53, 0, 0, 130)
@@ -99,38 +95,52 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 6)
 closeCorner.Parent = closeBtn
 
--- Lógica para copiar la descripción del avatar por ID
-local function applyAvatar(targetUserId)
+-- Función alternativa segura usando HumanoidDescription directo por ID
+local function copyTargetAvatar(userId)
     local character = player.Character
     if not character then return end
     local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        pcall(function()
-            local content = Players:GetHumanoidDescriptionFromUserId(targetUserId)
-            humanoid:ApplyDescription(content)
+    if not humanoid then return end
+
+    task.spawn(function()
+        local success, desc = pcall(function()
+            return Players:GetHumanoidDescriptionFromUserId(userId)
         end)
-    end
+        
+        if success and desc then
+            -- Aplica la descripción completa forzando las propiedades del modelo
+            local currentDesc = humanoid:GetAppliedDescription()
+            if currentDesc then
+                currentDesc.Shirt = desc.Shirt
+                currentDesc.Pants = desc.Pants
+                currentDesc.Graphic = desc.Graphic
+                currentDesc.Face = desc.Face
+                humanoid:ApplyDescription(currentDesc)
+            else
+                humanoid:ApplyDescription(desc)
+            end
+        else
+            warn("No se pudo obtener la descripción del usuario.")
+        end
+    end)
 end
 
--- Evento del botón Copiar
 copyBtn.MouseButton1Click:Connect(function()
     local input = textBox.Text
     local targetId = tonumber(input)
     
     if targetId then
-        applyAvatar(targetId)
+        copyTargetAvatar(targetId)
     else
-        -- Si escribieron un nombre en lugar de un número, busca el UserId automáticamente
-        pcall(function()
-            local id = Players:GetUserIdFromNameAsync(input)
-            if id then
-                applyAvatar(id)
-            end
+        local success, id = pcall(function()
+            return Players:GetUserIdFromNameAsync(input)
         end)
+        if success and id then
+            copyTargetAvatar(id)
+        end
     end
 end)
 
--- Lógica de Minimizar
 local minimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
@@ -149,9 +159,8 @@ minimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Lógica de Cerrar por completo
 closeBtn.MouseButton1Click:Connect(function()
     screenGui:Destroy()
 end)
 
-print("[+] Script de clonar avatar cargado con éxito.")
+print("[+] Script de clonación directa cargado.")
